@@ -43,7 +43,7 @@ const Cart = () => {
 
     const message = `Hi! I want to order custom phone covers:\n\n${orderDetails}\n\nCustomer Details:\nName: ${customerDetails.name}\nPhone: ${customerDetails.phone}\nAddress: ${customerDetails.address}\nPincode: ${customerDetails.pincode}\n\nTotal Amount: ₹${total} (including ₹${shipping} delivery)`;
 
-    const whatsappUrl = `https://wa.me/919876543210?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/917006502449?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, "_blank");
 
     toast({
