@@ -13,8 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
 const Cart = () => {
-  const { cartItems, removeFromCart, clearCart } = useCart();
+  const { cartItems, removeFromCart } = useCart();
   const { toast } = useToast();
+
   const [customerDetails, setCustomerDetails] = useState<CustomerDetails>({
     name: "",
     phone: "",
@@ -26,48 +27,106 @@ const Cart = () => {
   const shipping = 59;
   const total = subtotal + shipping;
 
-  const handleCheckout = () => {
-  if (!customerDetails.name || !customerDetails.phone || !customerDetails.address || !customerDetails.pincode) {
+  // ✅ Upload image to Cloudinary
+  const uploadToCloudinary = async (file: File) => {
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", "YOUR_UPLOAD_PRESET");
+    data.append("cloud_name", "YOUR_CLOUD_NAME");
+
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload`,
+        { method: "POST", body: data }
+      );
+      const uploaded = await res.json();
+      return uploaded.secure_url;
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      return null;
+    }
+  };
+
+  // ✅ Checkout Logic
+  const handleCheckout = async () => {
+    if (
+      !customerDetails.name ||
+      !customerDetails.phone ||
+      !customerDetails.address ||
+      !customerDetails.pincode
+    ) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill all the details",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
-      title: "Missing Information",
-      description: "Please fill all the details",
-      variant: "destructive",
+      title: "Preparing WhatsApp Message...",
+      description: "Please wait while we upload your image(s)",
     });
-    return;
-  }
 
-  // Build order details including image links
-  const orderDetails = cartItems
-    .map((item, index) => 
-      `${index + 1}. ${item.phoneBrand} ${item.phoneModel}\nImage: ${item.imageUrl}`
-    )
-    .join("\n\n");
+    // Upload all images if they are local files (not already URLs)
+    const imageLinks: string[] = [];
 
-  const message = `Hi! I want to order custom phone covers:\n\n${orderDetails}\n\nCustomer Details:\nName: ${customerDetails.name}\nPhone: ${customerDetails.phone}\nAddress: ${customerDetails.address}\nPincode: ${customerDetails.pincode}\n\nTotal Amount: ₹${total} (including ₹${shipping} delivery)\n\nPlease confirm my order 😊`;
+    for (const item of cartItems) {
+      if (item.file instanceof File) {
+        const uploadedUrl = await uploadToCloudinary(item.file);
+        imageLinks.push(uploadedUrl || item.imageUrl);
+      } else {
+        imageLinks.push(item.imageUrl);
+      }
+    }
 
-  const whatsappUrl = `https://wa.me/917006502449?text=${encodeURIComponent(message)}`;
-  window.open(whatsappUrl, "_blank");
+    // Build WhatsApp message
+    const orderDetails = cartItems
+      .map(
+        (item, index) =>
+          `${index + 1}. ${item.phoneBrand} ${item.phoneModel}\nImage: ${
+            imageLinks[index]
+          }`
+      )
+      .join("\n\n");
 
-  toast({
-    title: "Redirecting to WhatsApp",
-    description: "Complete your order via WhatsApp",
-  });
-};
+    const message = `Hi! I want to order custom phone covers from Lovable 💖\n\n${orderDetails}\n\nCustomer Details:\nName: ${
+      customerDetails.name
+    }\nPhone: ${customerDetails.phone}\nAddress: ${
+      customerDetails.address
+    }\nPincode: ${customerDetails.pincode}\n\nTotal Amount: ₹${total} (including ₹${shipping} delivery)\n\nPlease confirm my order 😊`;
 
+    const whatsappUrl = `https://wa.me/917006502449?text=${encodeURIComponent(
+      message
+    )}`;
+
+    window.open(whatsappUrl, "_blank");
+
+    toast({
+      title: "Redirecting to WhatsApp",
+      description: "Complete your order via WhatsApp 💬",
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar cartCount={cartItems.length} />
-      
+
       <main className="flex-1 py-12">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold text-foreground mb-8">Shopping Cart</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-8">
+            Shopping Cart
+          </h1>
 
           {cartItems.length === 0 ? (
             <Card className="p-12 text-center rounded-2xl">
               <ShoppingBag className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">Your cart is empty</h2>
-              <p className="text-muted-foreground mb-6">Add some beautiful covers to get started!</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Your cart is empty
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Add some beautiful covers to get started!
+              </p>
               <Link to="/customize">
                 <Button size="lg" className="rounded-full">
                   Start Customizing
@@ -82,9 +141,9 @@ const Cart = () => {
                   <Card key={item.id} className="p-6 rounded-2xl">
                     <div className="flex gap-4">
                       <div className="w-24 h-24 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-                        <img 
-                          src={item.imageUrl} 
-                          alt="Cover preview" 
+                        <img
+                          src={item.imageUrl}
+                          alt="Cover preview"
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -92,8 +151,12 @@ const Cart = () => {
                         <h3 className="font-semibold text-foreground">
                           {item.phoneBrand} {item.phoneModel}
                         </h3>
-                        <p className="text-sm text-muted-foreground mt-1">Custom Design</p>
-                        <p className="text-lg font-bold text-primary mt-2">₹{item.price}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Custom Design
+                        </p>
+                        <p className="text-lg font-bold text-primary mt-2">
+                          ₹{item.price}
+                        </p>
                       </div>
                       <Button
                         variant="ghost"
@@ -111,13 +174,20 @@ const Cart = () => {
               {/* Checkout Panel */}
               <div className="space-y-6">
                 <Card className="p-6 rounded-2xl">
-                  <h2 className="text-xl font-bold text-foreground mb-4">Customer Details</h2>
+                  <h2 className="text-xl font-bold text-foreground mb-4">
+                    Customer Details
+                  </h2>
                   <div className="space-y-4">
                     <div>
                       <Label>Full Name</Label>
                       <Input
                         value={customerDetails.name}
-                        onChange={(e) => setCustomerDetails({ ...customerDetails, name: e.target.value })}
+                        onChange={(e) =>
+                          setCustomerDetails({
+                            ...customerDetails,
+                            name: e.target.value,
+                          })
+                        }
                         placeholder="Enter your name"
                         className="mt-1"
                       />
@@ -126,7 +196,12 @@ const Cart = () => {
                       <Label>Phone Number</Label>
                       <Input
                         value={customerDetails.phone}
-                        onChange={(e) => setCustomerDetails({ ...customerDetails, phone: e.target.value })}
+                        onChange={(e) =>
+                          setCustomerDetails({
+                            ...customerDetails,
+                            phone: e.target.value,
+                          })
+                        }
                         placeholder="Enter your phone"
                         className="mt-1"
                       />
@@ -135,7 +210,12 @@ const Cart = () => {
                       <Label>Delivery Address</Label>
                       <Textarea
                         value={customerDetails.address}
-                        onChange={(e) => setCustomerDetails({ ...customerDetails, address: e.target.value })}
+                        onChange={(e) =>
+                          setCustomerDetails({
+                            ...customerDetails,
+                            address: e.target.value,
+                          })
+                        }
                         placeholder="Enter your complete address"
                         className="mt-1"
                         rows={3}
@@ -145,7 +225,12 @@ const Cart = () => {
                       <Label>Pincode</Label>
                       <Input
                         value={customerDetails.pincode}
-                        onChange={(e) => setCustomerDetails({ ...customerDetails, pincode: e.target.value })}
+                        onChange={(e) =>
+                          setCustomerDetails({
+                            ...customerDetails,
+                            pincode: e.target.value,
+                          })
+                        }
                         placeholder="Enter pincode"
                         className="mt-1"
                       />
@@ -154,7 +239,9 @@ const Cart = () => {
                 </Card>
 
                 <Card className="p-6 rounded-2xl">
-                  <h2 className="text-xl font-bold text-foreground mb-4">Order Summary</h2>
+                  <h2 className="text-xl font-bold text-foreground mb-4">
+                    Order Summary
+                  </h2>
                   <div className="space-y-3">
                     <div className="flex justify-between text-foreground">
                       <span>Subtotal ({cartItems.length} items)</span>
@@ -171,7 +258,7 @@ const Cart = () => {
                       </div>
                     </div>
                   </div>
-                  <Button 
+                  <Button
                     onClick={handleCheckout}
                     className="w-full mt-6 rounded-full h-12"
                     size="lg"
