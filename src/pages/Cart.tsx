@@ -27,30 +27,33 @@ const Cart = () => {
   const total = subtotal + shipping;
 
   const handleCheckout = () => {
-    if (!customerDetails.name || !customerDetails.phone || !customerDetails.address || !customerDetails.pincode) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill all the details",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Create WhatsApp message
-    const orderDetails = cartItems.map((item, index) => 
-      `${index + 1}. ${item.phoneBrand} ${item.phoneModel}`
-    ).join("\n");
-
-    const message = `Hi! I want to order custom phone covers:\n\n${orderDetails}\n\nCustomer Details:\nName: ${customerDetails.name}\nPhone: ${customerDetails.phone}\nAddress: ${customerDetails.address}\nPincode: ${customerDetails.pincode}\n\nTotal Amount: ₹${total} (including ₹${shipping} delivery)`;
-
-    const whatsappUrl = `https://wa.me/917006502449?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, "_blank");
-
+  if (!customerDetails.name || !customerDetails.phone || !customerDetails.address || !customerDetails.pincode) {
     toast({
-      title: "Redirecting to WhatsApp",
-      description: "Complete your order via WhatsApp",
+      title: "Missing Information",
+      description: "Please fill all the details",
+      variant: "destructive",
     });
-  };
+    return;
+  }
+
+  // Build order details including image links
+  const orderDetails = cartItems
+    .map((item, index) => 
+      `${index + 1}. ${item.phoneBrand} ${item.phoneModel}\nImage: ${item.imageUrl}`
+    )
+    .join("\n\n");
+
+  const message = `Hi! I want to order custom phone covers:\n\n${orderDetails}\n\nCustomer Details:\nName: ${customerDetails.name}\nPhone: ${customerDetails.phone}\nAddress: ${customerDetails.address}\nPincode: ${customerDetails.pincode}\n\nTotal Amount: ₹${total} (including ₹${shipping} delivery)\n\nPlease confirm my order 😊`;
+
+  const whatsappUrl = `https://wa.me/917006502449?text=${encodeURIComponent(message)}`;
+  window.open(whatsappUrl, "_blank");
+
+  toast({
+    title: "Redirecting to WhatsApp",
+    description: "Complete your order via WhatsApp",
+  });
+};
+
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
