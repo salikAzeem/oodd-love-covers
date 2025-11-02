@@ -1,12 +1,24 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import Navbar from "@/components/Navbar";
+import Hero from "@/components/Hero";
+import Collections from "@/components/Collections";
+import PricingBanner from "@/components/PricingBanner";
+import Reviews from "@/components/Reviews";
+import Footer from "@/components/Footer";
+import { useCart } from "@/context/CartContext";
 
 const Index = () => {
+  const { cartItems } = useCart();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <Navbar cartCount={cartItems.length} />
+      <main className="flex-1">
+        <Hero />
+        <Collections />
+        <PricingBanner />
+        <Reviews />
+      </main>
+      <Footer />
     </div>
   );
 };
